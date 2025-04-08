@@ -1,22 +1,22 @@
-from flask import Flask, request, jsonify
-from utils import extract_text_from_docx, ask_together_ai
+from docx import Document
+import requests
+import os
 
-app = Flask(__name__)
+def extract_text_from_docx(file):
+    doc = Document(file)
+    return "\n".join([para.text for para in doc.paragraphs])
 
-@app.route("/", methods=["GET"])
-def home():
-    return "Word Chatbot is running!"
+def ask_together_ai(prompt):
+    url = "https://api.together.xyz/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {os.getenv('TOGETHER_API_KEY')}",
+        "Content-Type": "application/json"
+    }
+    data = {
+        "model": "togethercomputer/llama-2-7b-chat",
+        "messages": [{"role": "user", "content": prompt}]
+    }
 
-@app.route("/chat", methods=["POST"])
-def chat():
-    if 'file' not in request.files:
-        return jsonify({"error": "No file uploaded"}), 400
-
-    file = request.files['file']
-
-    try:
-        text = extract_text_from_docx(file)
-        response = ask_together_ai(text)
-        return jsonify({"response": response})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    res = requests.post(url, headers=headers, json=data)
+    res.raise_for_status()
+    return res.json()["choices"][0]["message"]["content"]
