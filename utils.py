@@ -2,22 +2,33 @@ import os
 import requests
 from docx import Document
 
-# 📄 Load your Word file once when the app starts
-DOC_PATH = "sample_doc.docx"  # Make sure this file is in your project root
+# 📄 Path to your pre-uploaded Word file
+DOC_PATH = "sample_doc.docx"  # Make sure this file is in your root or correct location
 
 def extract_text_from_docx(file_path):
+    """Extracts text from a .docx Word document."""
     doc = Document(file_path)
     full_text = [para.text for para in doc.paragraphs if para.text.strip()]
     return "\n".join(full_text)
 
-# 🧠 Loaded globally and reused across requests
-document_text = extract_text_from_docx(DOC_PATH)
+# 🧠 Load the document once globally for reuse
+try:
+    document_text = extract_text_from_docx(DOC_PATH)
+except Exception as e:
+    document_text = ""
+    print(f"❌ Failed to load document '{DOC_PATH}': {e}")
 
-# 🧠 Ask Together AI using the document content as context
 def ask_together_ai(question):
+    """
+    Sends the extracted document and user question to Together AI
+    and returns the model's answer.
+    """
     api_key = os.getenv("TOGETHER_API_KEY")
     if not api_key:
         raise ValueError("TOGETHER_API_KEY environment variable is missing.")
+
+    if not document_text:
+        raise ValueError("Document text is empty or failed to load.")
 
     prompt = f"""You are an expert assistant. Answer the question using the document below.
 
