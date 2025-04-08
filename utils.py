@@ -3,7 +3,7 @@ import requests
 from docx import Document
 
 # 📄 Path to your pre-uploaded Word file
-DOC_PATH = "sample_doc.docx"  # Make sure this file is in your root or correct location
+DOC_PATH = "default.docx"  # Make sure this file is in your root or correct location
 
 def extract_text_from_docx(file_path):
     """Extracts text from a .docx Word document."""
