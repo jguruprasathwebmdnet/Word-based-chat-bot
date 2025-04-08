@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: word-chatbot
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: TOGETHER_API_KEY
+        value: 8a0a1afb6c1d76f0a046a4f27225b9d81887200503f5102cc47e63e48a77df5b
