@@ -3,3 +3,4 @@ python-docx
 requests
 uvicorn
 gunicorn
+python-multipart
