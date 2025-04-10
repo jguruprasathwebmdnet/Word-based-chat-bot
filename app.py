@@ -1,17 +1,24 @@
-from fastapi import FastAPI, Request, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from utils import extract_text_from_docx, ask_together_ai
+import os
 
 app = FastAPI()
+
+# Mount static directory to serve HTML and other frontend assets
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 class ChatRequest(BaseModel):
     message: str
 
+# Serve the chatbot HTML on the root route
 @app.get("/")
-async def home():
-    return {"message": "Welcome to the FastAPI application. Please use the /chat endpoint to interact."}
+async def serve_chat_page():
+    return FileResponse(os.path.join("static", "chat.html"))
 
+# Chat endpoint
 @app.post("/chat")
 async def chat(request_data: ChatRequest):
     user_message = request_data.message
@@ -24,6 +31,6 @@ async def chat(request_data: ChatRequest):
 
         prompt = f"{doc_text}\n\nUser: {user_message}\nAI:"
         response = ask_together_ai(prompt)
-        return {"response": response}
+        return {"reply": response}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
