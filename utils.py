@@ -1,74 +1,41 @@
 import os
 import requests
 from docx import Document
-from typing import BinaryIO
+from dotenv import load_dotenv
 
-def extract_text_from_docx(file: BinaryIO) -> str:
-    """
-    Extracts text from a .docx Word document provided as a file-like object.
+load_dotenv()
 
-    Args:
-        file (BinaryIO): A file-like object representing the .docx document.
+TOGETHER_API_KEY = os.getenv("TOGETHER_API_KEY")
+TOGETHER_API_URL = "https://api.together.xyz/v1/chat/completions"
 
-    Returns:
-        str: The extracted text from the document.
-    """
+def extract_text_from_docx(file) -> str:
     doc = Document(file)
-    full_text = [para.text for para in doc.paragraphs if para.text.strip()]
-    return "\n".join(full_text)
+    full_text = "\n".join([para.text for para in doc.paragraphs])
+    return full_text
 
-def ask_together_ai(document_text: str, question: str) -> str:
-    """
-    Sends the extracted document text and user question to Together AI
-    and returns the model's answer.
+def ask_together_ai(prompt: str) -> str:
+    if not TOGETHER_API_KEY:
+        raise ValueError("TOGETHER_API_KEY is not set in environment.")
 
-    Args:
-        document_text (str): The text extracted from the document.
-        question (str): The user's question.
+    headers = {
+        "Authorization": f"Bearer {TOGETHER_API_KEY}",
+        "Content-Type": "application/json"
+    }
 
-    Returns:
-        str: The AI-generated answer.
+    payload = {
+        "model": "mistral-7b-instruct",  # You can switch to llama-2, qwen, etc.
+        "messages": [
+            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "user", "content": prompt}
+        ],
+        "max_tokens": 300,
+        "temperature": 0.7,
+    }
 
-    Raises:
-        ValueError: If the TOGETHER_API_KEY environment variable is missing
-                    or if the document text is empty.
-        RuntimeError: If the Together AI API returns an error response.
-    """
-    api_key = os.getenv("TOGETHER_API_KEY")
-    if not api_key:
-        raise ValueError("TOGETHER_API_KEY environment variable is missing.")
+    response = requests.post(TOGETHER_API_URL, json=payload, headers=headers)
 
-    if not document_text:
-        raise ValueError("Document text is empty or failed to load.")
-
-    prompt = f"""You are an expert assistant. Answer the question using the document below.
-
-Document:
-\"\"\"
-{document_text}
-\"\"\"
-
-Question: {question}
-Answer:"""
-
-    response = requests.post(
-        "https://api.together.xyz/v1/chat/completions",
-        headers={
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
-        },
-        json={
-            "model": "mistralai/Mixtral-8x7B-Instruct-v0.1",
-            "messages": [
-                {"role": "user", "content": prompt}
-            ],
-            "max_tokens": 512,
-            "temperature": 0.7
-        }
-    )
-
-    if response.status_code != 200:
-        raise RuntimeError(f"Together API error: {response.status_code} - {response.text}")
-
-    data = response.json()
-    return data["choices"][0]["message"]["content"].strip()
+    if response.status_code == 200:
+        return response.json()["choices"][0]["message"]["content"].strip()
+    else:
+        print("API error:", response.status_code, response.text)
+        return "Sorry, the AI couldn't respond right now."
