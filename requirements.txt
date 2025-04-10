@@ -4,3 +4,4 @@ requests
 uvicorn
 gunicorn
 python-multipart
+pydantic
