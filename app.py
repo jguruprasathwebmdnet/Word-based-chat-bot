@@ -1,18 +1,23 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, Request, HTTPException
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from utils import extract_text_from_docx, ask_together_ai
 import logging
 
-logging.basicConfig(level=logging.INFO)
-
 app = FastAPI()
+templates = Jinja2Templates(directory="templates")
+
+# Serve static files like CSS or JS (if needed)
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 class ChatRequest(BaseModel):
     message: str
 
-@app.get("/")
-async def home():
-    return {"message": "Welcome to the FastAPI AI Chatbot. Use /chat to talk with the bot."}
+@app.get("/", response_class=HTMLResponse)
+async def serve_ui(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
 
 @app.post("/chat")
 async def chat(request_data: ChatRequest):
@@ -28,8 +33,6 @@ async def chat(request_data: ChatRequest):
         logging.info(f"Prompt: {prompt}")
 
         response = ask_together_ai(prompt)
-        logging.info(f"AI response: {response}")
-
         return {"reply": response or "Sorry, I didn't get that."}
 
     except Exception as e:
