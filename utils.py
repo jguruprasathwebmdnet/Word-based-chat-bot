@@ -1,27 +1,38 @@
 import os
 import requests
 from docx import Document
+from typing import BinaryIO
 
-# 📄 Path to your pre-uploaded Word file
-DOC_PATH = "default.docx"  # Make sure this file is in your root or correct location
+def extract_text_from_docx(file: BinaryIO) -> str:
+    """
+    Extracts text from a .docx Word document provided as a file-like object.
 
-def extract_text_from_docx(file_path):
-    """Extracts text from a .docx Word document."""
-    doc = Document(file_path)
+    Args:
+        file (BinaryIO): A file-like object representing the .docx document.
+
+    Returns:
+        str: The extracted text from the document.
+    """
+    doc = Document(file)
     full_text = [para.text for para in doc.paragraphs if para.text.strip()]
     return "\n".join(full_text)
 
-# 🧠 Load the document once globally for reuse
-try:
-    document_text = extract_text_from_docx(DOC_PATH)
-except Exception as e:
-    document_text = ""
-    print(f"❌ Failed to load document '{DOC_PATH}': {e}")
-
-def ask_together_ai(question):
+def ask_together_ai(document_text: str, question: str) -> str:
     """
-    Sends the extracted document and user question to Together AI
+    Sends the extracted document text and user question to Together AI
     and returns the model's answer.
+
+    Args:
+        document_text (str): The text extracted from the document.
+        question (str): The user's question.
+
+    Returns:
+        str: The AI-generated answer.
+
+    Raises:
+        ValueError: If the TOGETHER_API_KEY environment variable is missing
+                    or if the document text is empty.
+        RuntimeError: If the Together AI API returns an error response.
     """
     api_key = os.getenv("TOGETHER_API_KEY")
     if not api_key:
