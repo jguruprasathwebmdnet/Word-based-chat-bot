@@ -1,34 +1,35 @@
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse, HTMLResponse
-from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel
 from utils import extract_text_from_docx, ask_together_ai
 
 app = FastAPI()
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
-templates = Jinja2Templates(directory="templates")
-
 class ChatRequest(BaseModel):
     message: str
 
-@app.get("/", response_class=HTMLResponse)
-async def home(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
-
-@app.post("/chat")
-async def chat(request_data: ChatRequest):
-    user_message = request_data.message
-    if not user_message:
-        return JSONResponse(content={"error": "No message provided"}, status_code=400)
-
+@app.post("/upload/")
+async def upload_file(file: UploadFile = File(...)):
+    """
+    Endpoint to upload a .docx file and extract its text.
+    """
+    if not file.filename.endswith(".docx"):
+        raise HTTPException(status_code=400, detail="Invalid file type. Please upload a .docx file.")
     try:
-        with open("default.docx", "rb") as f:
-            doc_text = extract_text_from_docx(f)
-
-        prompt = f"{doc_text}\n\nUser: {user_message}\nAI:"
-        response = ask_together_ai(prompt)
-        return {"response": response}
+        document_text = extract_text_from_docx(file.file)
+        return {"document_text": document_text}
     except Exception as e:
-        return JSONResponse(content={"error": str(e)}, status_code=500)
+        raise HTTPException(status_code=500, detail=f"Error processing document: {str(e)}")
+
+@app.post("/chat/")
+async def chat(question: str = Form(...), file: UploadFile = File(...)):
+    """
+    Endpoint to ask a question based on the uploaded .docx document.
+    """
+    if not file.filename.endswith(".docx"):
+        raise HTTPException(status_code=400, detail="Invalid file type. Please upload a .docx file.")
+    try:
+        document_text = extract_text_from_docx(file.file)
+        answer = ask_together_ai(document_text, question)
+        return {"answer": answer}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error processing request: {str(e)}")
