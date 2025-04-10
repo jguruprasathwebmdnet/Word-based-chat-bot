@@ -1,27 +1,22 @@
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse
-from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from utils import extract_text_from_docx, ask_together_ai
-import os
+import logging
+
+logging.basicConfig(level=logging.INFO)
 
 app = FastAPI()
-
-# Mount static directory to serve HTML and other frontend assets
-app.mount("/static", StaticFiles(directory="static"), name="static")
 
 class ChatRequest(BaseModel):
     message: str
 
-# Serve the chatbot HTML on the root route
 @app.get("/")
-async def serve_chat_page():
-    return FileResponse(os.path.join("static", "chat.html"))
+async def home():
+    return {"message": "Welcome to the FastAPI AI Chatbot. Use /chat to talk with the bot."}
 
-# Chat endpoint
 @app.post("/chat")
 async def chat(request_data: ChatRequest):
-    user_message = request_data.message
+    user_message = request_data.message.strip()
     if not user_message:
         raise HTTPException(status_code=400, detail="No message provided")
 
@@ -29,8 +24,14 @@ async def chat(request_data: ChatRequest):
         with open("default.docx", "rb") as f:
             doc_text = extract_text_from_docx(f)
 
-        prompt = f"{doc_text}\n\nUser: {user_message}\nAI:"
+        prompt = f"{doc_text.strip()}\n\nUser: {user_message}\nAI:"
+        logging.info(f"Prompt: {prompt}")
+
         response = ask_together_ai(prompt)
-        return {"reply": response}
+        logging.info(f"AI response: {response}")
+
+        return {"reply": response or "Sorry, I didn't get that."}
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logging.error(f"Error during chat: {e}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
