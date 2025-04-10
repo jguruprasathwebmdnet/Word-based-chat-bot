@@ -3,9 +3,14 @@ from pydantic import BaseModel
 from utils import extract_text_from_docx, ask_together_ai
 
 app = FastAPI()
+route = 
 
 class ChatRequest(BaseModel):
     message: str
+
+@app.get("/")
+async def home():
+    return {"message": "Welcome to the FastAPI application. Please use the /chat endpoint to interact."}
 
 @app.post("/upload/")
 async def upload_file(file: UploadFile = File(...)):
