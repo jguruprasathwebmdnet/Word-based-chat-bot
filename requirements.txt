@@ -1,4 +1,5 @@
-flask
+fastapi
 python-docx
 requests
+uvicorn
 gunicorn
