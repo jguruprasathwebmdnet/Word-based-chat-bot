@@ -1,6 +1,5 @@
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import HTMLResponse
-from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from utils import extract_text_from_docx, ask_together_ai
@@ -8,9 +7,6 @@ import logging
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
-
-# Serve static files like CSS or JS (if needed)
-app.mount("/static", StaticFiles(directory="static"), name="static")
 
 class ChatRequest(BaseModel):
     message: str
